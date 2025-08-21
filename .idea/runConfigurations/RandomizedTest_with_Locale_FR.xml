@@ -1,0 +1,19 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="RandomizedTest with Locale FR" type="JUnit" factoryName="JUnit">
+    <module name="randomizedtesting-demo" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="fr.pilato.talk.randomizedtesting.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <option name="PACKAGE_NAME" value="fr.pilato.talk.randomizedtesting" />
+    <option name="MAIN_CLASS_NAME" value="fr.pilato.talk.randomizedtesting.RandomizedTest" />
+    <option name="METHOD_NAME" value="" />
+    <option name="TEST_OBJECT" value="class" />
+    <option name="VM_PARAMETERS" value="-ea -Dtests.locale=fr-FR" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
