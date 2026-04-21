@@ -18,53 +18,59 @@
  */
 package fr.pilato.talk.randomizedtesting;
 
-import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.ThreadFilter;
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import com.carrotsearch.randomizedtesting.annotations.Seed;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
+import com.carrotsearch.randomizedtesting.jupiter.DetectThreadLeaks;
+import com.carrotsearch.randomizedtesting.jupiter.FixSeed;import com.carrotsearch.randomizedtesting.jupiter.Randomized;
+import com.carrotsearch.randomizedtesting.jupiter.SystemThreadFilter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.*;
-import org.junit.rules.TestName;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.Locale;
 import java.util.Random;
+import java.util.function.Predicate;
 
-import static com.carrotsearch.randomizedtesting.RandomizedTest.*;
+import static com.carrotsearch.randomizedtesting.jupiter.RandomizedTest.randomBoolean;
+import static com.carrotsearch.randomizedtesting.jupiter.RandomizedTest.randomInt;
+import static com.carrotsearch.randomizedtesting.jupiter.RandomizedTest.randomIntInRange;
+import static com.carrotsearch.randomizedtesting.jupiter.RandomizedTest.randomLocale;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-@RunWith(RandomizedRunner.class)
-@ThreadLeakFilters(filters = {RandomizedTest.FriendlyZombieFilter.class})
-public class RandomizedTest {
+@DetectThreadLeaks
+@DetectThreadLeaks.ExcludeThreads({
+        RandomizedTest.FriendlyZombieFilter.class,
+        RandomizedTest.IntelliJThreadsFilter.class,
+        SystemThreadFilter.class})
+@Randomized
+class RandomizedTest {
 
     private static final Logger LOGGER = LogManager.getLogger();
     private static final Locale savedLocale = Locale.getDefault();
 
-    @Rule
-    public TestName name = new TestName();
-
-    @BeforeClass
-    public static void setLocale() {
+    @BeforeAll
+    static void setLocale(Random rnd) {
         String testLocale = System.getProperty("tests.locale", "random");
-        Locale locale = testLocale.equals("random") ? com.carrotsearch.randomizedtesting.RandomizedTest.randomLocale() :
+        Locale locale = testLocale.equals("random") ? randomLocale(rnd) :
                 new Locale.Builder().setLanguageTag(testLocale).build();
         Locale.setDefault(locale);
         LOGGER.info("🌍 Starting test suite with Locale [{}]", Locale.getDefault().toLanguageTag());
     }
 
-    @AfterClass
-    public static void resetLocale() {
+    @AfterAll
+    static void resetLocale() {
         Locale.setDefault(savedLocale);
     }
 
+    @BeforeEach
+    void beforeEach(TestInfo testInfo) {
+        LOGGER.info("🏁 Starting test [{}]", testInfo.getDisplayName());
+    }
+
     @Test
-    public void random00() {
-        LOGGER.info("🏁 Starting test [{}]", name.getMethodName());
+    void random00() {
         Random generator = new Random();
         int num = generator.nextInt();
         LOGGER.info(" ➡️ Num is [{}]", num);
@@ -72,8 +78,7 @@ public class RandomizedTest {
     }
 
     @Test
-    public void randomWithSeed01() {
-        LOGGER.info("🏁 Starting test [{}]", name.getMethodName());
+    void randomWithSeed01() {
         Random generator = new Random(12345L);
         int num = generator.nextInt();
         LOGGER.info(" ➡️ Num is [{}]", num);
@@ -81,52 +86,47 @@ public class RandomizedTest {
     }
 
     @Test
-    public void randomInteger02() {
-        LOGGER.info("🏁 Starting test [{}]", name.getMethodName());
-        int num = randomInt();
+    void randomInteger02(Random rnd) {
+        int num = randomInt(rnd);
         LOGGER.info(" ➡️ Num is [{}]", num);
         assertThat(num).isNotEqualTo(-1671230352);
     }
 
     @Test
-    @Seed("12345")
-    public void randomIntegerWithSeed03() {
-        LOGGER.info("🏁 Starting test [{}]", name.getMethodName());
-        int num = randomInt();
+    @FixSeed("12345")
+    void randomIntegerWithSeed03(Random rnd) {
+        int num = randomInt(rnd);
         LOGGER.info(" ➡️ Num is [{}]", num);
         assertThat(num).isEqualTo(-1671230352);
     }
 
-    @Test
-    @Repeat(iterations = 5)
-    public void randomIntegerWithRange04() {
-        LOGGER.info("🏁 Starting test [{}]", name.getMethodName());
-        int num = randomIntBetween(0, 10);
+    @RepeatedTest(5)
+    void randomIntegerWithRange04(Random rnd) {
+        int num = randomIntInRange(rnd, 0, 10);
         LOGGER.info(" ➡️ Num is [{}]", num);
         assertThat(num).isBetween(0, 10);
     }
 
     @Test
-    public void randomLocale10() {
-        LOGGER.info("🏁 Starting test [{}]", name.getMethodName());
+    void randomLocale10() {
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL);
         String format = dateTimeFormatter.format(LocalDate.now());
         LOGGER.info(" ➡️ Date is formatted as [{}]", format);
+        assertThat(format).isNotEmpty();
     }
 
     @Test
-    public void ignoreIfUseless20() {
-        LOGGER.info("🏁 Starting test [{}]", name.getMethodName());
-        boolean b = randomBoolean();
+    void ignoreIfUseless20(Random rnd) {
+        boolean b = randomBoolean(rnd);
         LOGGER.info(" ➡️ boolean is [{}]", b);
         assumeTrue(b);
         assertThat(b).isTrue();
     }
 
     @Test
-    public void stopOrIdentifyYourThreads30() {
-        LOGGER.info("🏁 Starting test [{}]", name.getMethodName());
+    void stopOrIdentifyYourThreads30() {
         LOGGER.info(" ➡️ starting a new Thread");
+        boolean b = true;
         new Thread(() -> {
             while (true) {
                 try {
@@ -135,11 +135,27 @@ public class RandomizedTest {
                 }
             }
         }, "friendly-zombie").start();
+        assertThat(b).isTrue();
     }
 
-    public static class FriendlyZombieFilter implements ThreadFilter {
-        public boolean reject(Thread t) {
+    public static class FriendlyZombieFilter implements Predicate<Thread> {
+        public boolean test(Thread t) {
             return "friendly-zombie".equals(t.getName());
+        }
+    }
+
+    /**
+     * This filter is only needed when running the tests from IntelliJ
+     */
+    public static class IntelliJThreadsFilter implements Predicate<Thread> {
+        public boolean test(Thread t) {
+            boolean intellijThreads = t.getName().startsWith("JMX server") || t.getName().startsWith("RMI TCP Connection");
+            if (intellijThreads) {
+                LOGGER.warn("Detected IntelliJ threads [{}], if you are running the tests from IntelliJ, " +
+                        "you can ignore this warning or add [{}] to the thread leak filters",
+                        t.getName(), IntelliJThreadsFilter.class.getSimpleName());
+            }
+            return intellijThreads;
         }
     }
 }
