@@ -19,11 +19,16 @@
 package fr.pilato.talk.randomizedtesting;
 
 import com.carrotsearch.randomizedtesting.jupiter.DetectThreadLeaks;
-import com.carrotsearch.randomizedtesting.jupiter.FixSeed;import com.carrotsearch.randomizedtesting.jupiter.Randomized;
-import com.carrotsearch.randomizedtesting.jupiter.SystemThreadFilter;
+import com.carrotsearch.randomizedtesting.jupiter.FixSeed;
+import com.carrotsearch.randomizedtesting.jupiter.Randomized;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -40,10 +45,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @DetectThreadLeaks
-@DetectThreadLeaks.ExcludeThreads({
-        RandomizedTest.FriendlyZombieFilter.class,
-        RandomizedTest.IntelliJThreadsFilter.class,
-        SystemThreadFilter.class})
+@DetectThreadLeaks.ExcludeThreads({RandomizedTest.FriendlyZombieFilter.class, IntelliJThreadsFilter.class})
 @Randomized
 class RandomizedTest {
 
@@ -141,21 +143,6 @@ class RandomizedTest {
     public static class FriendlyZombieFilter implements Predicate<Thread> {
         public boolean test(Thread t) {
             return "friendly-zombie".equals(t.getName());
-        }
-    }
-
-    /**
-     * This filter is only needed when running the tests from IntelliJ
-     */
-    public static class IntelliJThreadsFilter implements Predicate<Thread> {
-        public boolean test(Thread t) {
-            boolean intellijThreads = t.getName().startsWith("JMX server") || t.getName().startsWith("RMI TCP Connection");
-            if (intellijThreads) {
-                LOGGER.warn("Detected IntelliJ threads [{}], if you are running the tests from IntelliJ, " +
-                        "you can ignore this warning or add [{}] to the thread leak filters",
-                        t.getName(), IntelliJThreadsFilter.class.getSimpleName());
-            }
-            return intellijThreads;
         }
     }
 }
