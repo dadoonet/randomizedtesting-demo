@@ -20,21 +20,29 @@ package fr.pilato.talk.randomizedtesting;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.junit.jupiter.api.Test;
 
-import java.util.function.Predicate;
+import java.util.Random;
 
-/**
- * This filter is only needed when running the tests from IntelliJ
- */
-public class IntelliJThreadsFilter implements Predicate<Thread> {
+import static org.assertj.core.api.Assertions.assertThat;
+
+class SeedTest {
+
     private static final Logger LOGGER = LogManager.getLogger();
-    public boolean test(Thread t) {
-        boolean intellijThreads = t.getName().startsWith("JMX server") || t.getName().startsWith("RMI TCP Connection");
-        if (intellijThreads) {
-            LOGGER.debug("Detected IntelliJ threads [{}], if you are running the tests from IntelliJ, " +
-                            "you can ignore this warning or add [{}] to the thread leak filters",
-                    t.getName(), IntelliJThreadsFilter.class.getSimpleName());
-        }
-        return intellijThreads;
+
+    @Test
+    void random00() {
+        Random generator = new Random();
+        int num = generator.nextInt();
+        LOGGER.info(" ➡️  Num is [{}]", num);
+        assertThat(num).isNotEqualTo(1553932502);
+    }
+
+    @Test
+    void randomWithSeed01() {
+        Random generator = new Random(12345L);
+        int num = generator.nextInt();
+        LOGGER.info(" ➡️  Num is [{}]", num);
+        assertThat(num).isEqualTo(1553932502);
     }
 }
